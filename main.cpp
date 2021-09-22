@@ -13,8 +13,26 @@ int raw_feature_get_data(size_t offset, size_t length, float *out_ptr) {
     return 0;
 }
 
+void fill_memory() {
+    size_t size = 8 * 1024;
+    size_t allocated = 0;
+    while (1) {
+        void *ptr = malloc(size);
+        if (!ptr) {
+            if (size == 1) break;
+            size /= 2;
+        }
+        else {
+            allocated += size;
+        }
+    }
+    printf("Allocated: %u bytes\n", allocated);
+}
+
 int main() {
     printf("Edge Impulse standalone inferencing (Mbed)\n");
+
+    //fill_memory();
 
     if (sizeof(features) / sizeof(float) != EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE) {
         printf("The size of your 'features' array is not correct. Expected %d items, but had %u\n",

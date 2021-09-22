@@ -1,4 +1,12 @@
 {
+    "macros": [
+    ],
+    "target_overrides": {
+        "*": {
+            "platform.memory-tracing-enabled": true,
+            "target.features_remove": ["BLE"]
+        }
+    },
     "GCC_ARM": {
         "common": ["-c", "-Wall", "-Wextra",
                    "-Wno-unused-parameter", "-Wno-missing-field-initializers",
