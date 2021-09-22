@@ -726,6 +726,282 @@ void I2C_DMATxBurstSize(I2C_Type* I2Cx, uint8_t I2C_BurstSize)
   I2Cx->DMAR_b.DBSIZE_TX = I2C_BurstSize;
 }
 
+/**
+ * @brief  Configures I2C interface
+ * @param  baudrate I2C clock frequency
+ * @retval SUCCESS in case of success, an error code otherwise
+ */
+ErrorStatus SdkEvalI2CInit(uint32_t baudrate)
+{   
+  GPIO_InitType GPIO_InitStructure;
+  I2C_InitType I2C_InitStruct;
+    
+  /* Enable I2C and GPIO clocks */
+  if(SDK_EVAL_I2C == I2C2) {
+    SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_GPIO | CLOCK_PERIPH_I2C2, ENABLE);
+  }
+  else {
+    SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_GPIO | CLOCK_PERIPH_I2C1, ENABLE);
+  }
+      
+  /* Configure I2C pins */
+  GPIO_InitStructure.GPIO_Pin = SDK_EVAL_I2C_CLK_PIN ;
+  GPIO_InitStructure.GPIO_Mode = SDK_EVAL_I2C_CLK_MODE;
+  GPIO_InitStructure.GPIO_Pull = DISABLE;
+  GPIO_InitStructure.GPIO_HighPwr = DISABLE;
+  GPIO_Init(&GPIO_InitStructure);
+  
+  GPIO_InitStructure.GPIO_Pin = SDK_EVAL_I2C_DATA_PIN;
+  GPIO_InitStructure.GPIO_Mode = SDK_EVAL_I2C_DATA_MODE;  
+  GPIO_Init(&GPIO_InitStructure);
+      
+  /* Configure I2C in master mode */
+  I2C_StructInit(&I2C_InitStruct);
+  I2C_InitStruct.I2C_OperatingMode = I2C_OperatingMode_Master;
+  I2C_InitStruct.I2C_ClockSpeed = baudrate;
+  I2C_Init((I2C_Type*)SDK_EVAL_I2C, &I2C_InitStruct);
+  
+  /* Clear all I2C pending interrupts */
+  I2C_ClearITPendingBit((I2C_Type*)SDK_EVAL_I2C, I2C_IT_MSK);
+  
+  return SUCCESS;
+}
+
+
+/**
+ * @brief  I2C function to write registers of a slave device
+ * @param  pBuffer buffer contains data to write
+ * @param  DeviceAddr the I2C slave address
+ * @param  RegisterAddr register address
+ * @param  NumByteToRead number of byte to write
+ * @retval SUCCESS in case of success, an error code otherwise
+ */
+ErrorStatus SdkEvalI2CWrite(uint8_t* pBuffer, uint8_t DeviceAddr, uint8_t RegisterAddr, uint8_t NumByteToWrite)
+{
+  I2C_TransactionType t;
+  
+  /* Write the slave address */
+  t.Operation = I2C_Operation_Write;
+  t.Address = DeviceAddr;
+  t.StartByte = I2C_StartByte_Disable;
+  t.AddressType = I2C_AddressType_7Bit;
+  t.StopCondition = I2C_StopCondition_Enable;
+  t.Length = 1+NumByteToWrite;
+  
+  /* Flush the slave address */
+  I2C_FlushTx((I2C_Type*)SDK_EVAL_I2C);
+  while (I2C_WaitFlushTx((I2C_Type*)SDK_EVAL_I2C) == I2C_OP_ONGOING);
+  
+  /* Begin transaction */
+  I2C_BeginTransaction((I2C_Type*)SDK_EVAL_I2C, &t);
+
+  /* Fill TX FIFO with data to write */
+  I2C_FillTxFIFO((I2C_Type*)SDK_EVAL_I2C, RegisterAddr);
+
+  for(uint8_t i=0; i<NumByteToWrite;i++) {
+    I2C_FillTxFIFO((I2C_Type*)SDK_EVAL_I2C, pBuffer[i]);
+  }
+  
+  /* Wait loop */
+  do {
+    if(I2C_GetStatus((I2C_Type*)SDK_EVAL_I2C) == I2C_OP_ABORTED)
+      return ERROR;
+   
+  } while (I2C_GetITStatus((I2C_Type*)SDK_EVAL_I2C, I2C_IT_MTD) == RESET);
+    
+  /* Clear pending bits */
+  I2C_ClearITPendingBit((I2C_Type*)SDK_EVAL_I2C, I2C_IT_MTD | I2C_IT_MTDWS);
+
+  return SUCCESS;
+}
+
+/**
+ * @brief  I2C function to write registers of a slave device
+ * @param  pBuffer buffer contains data to write
+ * @param  DeviceAddr the I2C slave address
+ * @param  RegisterAddr register address 16 bits
+ * @param  NumByteToRead number of byte to write
+ * @retval SUCCESS in case of success, an error code otherwise
+ */
+ErrorStatus SdkEvalI2CWrite16(uint8_t* pBuffer, uint8_t DeviceAddr, uint16_t RegisterAddr, uint8_t NumByteToWrite) {
+	I2C_TransactionType t;
+
+	/* Write the slave address */
+	t.Operation = I2C_Operation_Write;
+	t.Address = DeviceAddr;
+	t.StartByte = I2C_StartByte_Disable;
+	t.AddressType = I2C_AddressType_7Bit;
+	t.StopCondition = I2C_StopCondition_Enable;
+	t.Length = 2 + NumByteToWrite;
+
+	/* Flush the slave address */
+	I2C_FlushTx((I2C_Type*) SDK_EVAL_I2C);
+	while (I2C_WaitFlushTx((I2C_Type*) SDK_EVAL_I2C) == I2C_OP_ONGOING);
+
+	/* Begin transaction */
+	I2C_BeginTransaction((I2C_Type*) SDK_EVAL_I2C, &t);
+
+	/* Fill TX FIFO with data to write */
+	I2C_FillTxFIFO((I2C_Type*) SDK_EVAL_I2C, (uint8_t)(RegisterAddr>>8));
+	/* Fill TX FIFO with data to write */
+	I2C_FillTxFIFO((I2C_Type*) SDK_EVAL_I2C, (uint8_t)(RegisterAddr));
+
+	for (uint8_t i = 0; i < NumByteToWrite; i++) {
+		I2C_FillTxFIFO((I2C_Type*) SDK_EVAL_I2C, pBuffer[i]);
+	}
+
+	/* Wait loop */
+	do {
+		if (I2C_GetStatus((I2C_Type*) SDK_EVAL_I2C) == I2C_OP_ABORTED)
+		return ERROR;
+
+	}while (I2C_GetITStatus((I2C_Type*)SDK_EVAL_I2C, I2C_IT_MTD) == RESET);
+
+	/* Clear pending bits */
+	I2C_ClearITPendingBit((I2C_Type*) SDK_EVAL_I2C, I2C_IT_MTD | I2C_IT_MTDWS);
+
+	return SUCCESS;
+}
+
+
+/**
+ * @brief  I2C function to read registers from a slave device
+ * @param  pBuffer buffer to retrieve data from a slave
+ * @param  DeviceAddr the I2C slave address
+ * @param  RegisterAddr register address
+ * @param  NumByteToRead number of byte to read
+ * @retval SUCCESS in case of success, an error code otherwise
+ */
+ErrorStatus SdkEvalI2CRead(uint8_t* pBuffer, uint8_t DeviceAddr, uint8_t RegisterAddr, uint8_t NumByteToRead)
+{
+  I2C_TransactionType t;
+  
+  /* Write the slave address */
+  t.Operation = I2C_Operation_Write;
+  t.Address = DeviceAddr;
+  t.StartByte = I2C_StartByte_Disable;
+  t.AddressType = I2C_AddressType_7Bit;
+  t.StopCondition = I2C_StopCondition_Disable;
+  t.Length = 1;  
+  
+  /* Flush the slave address */
+  I2C_FlushTx((I2C_Type*)SDK_EVAL_I2C);
+  while (I2C_WaitFlushTx((I2C_Type*)SDK_EVAL_I2C) == I2C_OP_ONGOING);
+    
+  /* Begin transaction */
+  I2C_BeginTransaction((I2C_Type*)SDK_EVAL_I2C, &t);
+	
+  /* Fill TX FIFO with data to write */
+  I2C_FillTxFIFO((I2C_Type*)SDK_EVAL_I2C, RegisterAddr);
+
+  /* Wait loop */
+  do {
+    if(I2C_GetStatus((I2C_Type*)SDK_EVAL_I2C) == I2C_OP_ABORTED)
+      return ERROR;
+    
+  } while (I2C_GetITStatus((I2C_Type*)SDK_EVAL_I2C, I2C_IT_MTDWS) == RESET);
+  
+  /* Clear pending bits */
+  I2C_ClearITPendingBit((I2C_Type*)SDK_EVAL_I2C, I2C_IT_MTDWS);
+  
+  /* read data */
+  t.Operation = I2C_Operation_Read;
+  t.Address = DeviceAddr;
+  t.StartByte = I2C_StartByte_Disable;
+  t.AddressType = I2C_AddressType_7Bit;
+  t.StopCondition = I2C_StopCondition_Enable;
+  t.Length = NumByteToRead;  
+  I2C_BeginTransaction((I2C_Type*)SDK_EVAL_I2C, &t);
+  
+  /* Wait loop */
+  do {
+    if(I2C_OP_ABORTED == I2C_GetStatus((I2C_Type*)SDK_EVAL_I2C))
+      return ERROR;
+    
+  } while (RESET == I2C_GetITStatus((I2C_Type*)SDK_EVAL_I2C, I2C_IT_MTD));
+  
+  /* Clear pending bits */
+  I2C_ClearITPendingBit((I2C_Type*)SDK_EVAL_I2C, I2C_IT_MTD | I2C_IT_MTDWS);
+  
+  /* Get data from RX FIFO */
+  while(NumByteToRead--) {
+    *pBuffer = I2C_ReceiveData((I2C_Type*)SDK_EVAL_I2C);
+    pBuffer ++;
+  }
+  
+  return SUCCESS;
+}
+
+
+/**
+ * @brief  I2C function to read registers from a slave device
+ * @param  pBuffer buffer to retrieve data from a slave
+ * @param  DeviceAddr the I2C slave address
+ * @param  RegisterAddr register address in 16 bits
+ * @param  NumByteToRead number of byte to read
+ * @retval SUCCESS in case of success, an error code otherwise
+ */
+ErrorStatus SdkEvalI2CRead16(uint8_t* pBuffer, uint8_t DeviceAddr, uint16_t RegisterAddr, uint8_t NumByteToRead) {
+	I2C_TransactionType t;
+
+	/* Write the slave address */
+	t.Operation = I2C_Operation_Write;
+	t.Address = DeviceAddr;
+	t.StartByte = I2C_StartByte_Disable;
+	t.AddressType = I2C_AddressType_7Bit;
+	t.StopCondition = I2C_StopCondition_Disable;
+	t.Length = 2;
+
+	/* Flush the slave address */
+	I2C_FlushTx((I2C_Type*) SDK_EVAL_I2C);
+	while (I2C_WaitFlushTx((I2C_Type*) SDK_EVAL_I2C) == I2C_OP_ONGOING);
+
+	/* Begin transaction */
+	I2C_BeginTransaction((I2C_Type*) SDK_EVAL_I2C, &t);
+
+	/* Fill TX FIFO with data to write */
+	I2C_FillTxFIFO((I2C_Type*) SDK_EVAL_I2C, (uint8_t)((RegisterAddr & 0xFF00)/256));
+	I2C_FillTxFIFO((I2C_Type*) SDK_EVAL_I2C, (uint8_t)(RegisterAddr & 0x00FF));
+
+	/* Wait loop */
+	do {
+		if (I2C_GetStatus((I2C_Type*) SDK_EVAL_I2C) == I2C_OP_ABORTED)
+		return ERROR;
+
+	}while (I2C_GetITStatus((I2C_Type*)SDK_EVAL_I2C, I2C_IT_MTDWS) == RESET);
+
+	/* Clear pending bits */
+	I2C_ClearITPendingBit((I2C_Type*) SDK_EVAL_I2C, I2C_IT_MTDWS);
+
+	/* read data */
+	t.Operation = I2C_Operation_Read;
+	t.Address = DeviceAddr;
+	t.StartByte = I2C_StartByte_Disable;
+	t.AddressType = I2C_AddressType_7Bit;
+	t.StopCondition = I2C_StopCondition_Enable;
+	t.Length = NumByteToRead;
+	I2C_BeginTransaction((I2C_Type*) SDK_EVAL_I2C, &t);
+
+	/* Wait loop */
+	do {
+		if (I2C_OP_ABORTED == I2C_GetStatus((I2C_Type*) SDK_EVAL_I2C))
+		return ERROR;
+
+	}while (RESET == I2C_GetITStatus((I2C_Type*)SDK_EVAL_I2C, I2C_IT_MTD));
+
+	/* Clear pending bits */
+	I2C_ClearITPendingBit((I2C_Type*) SDK_EVAL_I2C, I2C_IT_MTD | I2C_IT_MTDWS);
+
+	/* Get data from RX FIFO */
+	while (NumByteToRead--) {
+		*pBuffer = I2C_ReceiveData((I2C_Type*) SDK_EVAL_I2C);
+		pBuffer ++;
+	}
+
+	return SUCCESS;
+}
+
+
 
 /**
   * @}

@@ -1,55 +1,113 @@
 #include "mbed.h"
 #include "ei_run_classifier.h"
 #include "numpy.hpp"
+#include "LSM6DSO.h"
 
-static const float features[] = {
-    // copy raw features here (for example from the 'Live classification' page)
-    // see https://docs.edgeimpulse.com/docs/running-your-impulse-mbed
-    2.7780, 3.8614, -16.3258, 2.4506, 3.6791, -18.4820, 2.6007, 4.1043, -18.4683, 2.8566, 4.4492, -17.9341, 2.7475, 5.1215, -18.2036, 1.8521, 4.6787, -19.8083, 1.5655, 4.3220, -19.8018, 1.5556, 4.3383, -18.7327, 2.0357, 4.3729, -15.9508, 2.3225, 4.1153, -14.3868, 2.2220, 3.7444, -14.2995, 1.7687, 3.0302, -14.2524, 1.1031, 2.7738, -13.1015, 0.9263, 2.7494, -12.2534, 1.1136, 2.3118, -10.8745, 1.1218, 1.6957, -9.2141, 0.9447, 1.6423, -8.2114, 0.4682, 1.5832, -6.1236, 0.5001, 1.5890, -5.5418, 0.2307, 0.9390, -5.7944, -0.2213, 0.2722, -6.3250, -0.7477, 0.5366, -5.3663, -0.5089, 0.4441, -4.3075, 0.1122, 0.5890, -2.1783, 0.0655, 0.7017, -1.2644, -0.3300, 0.4601, -1.4540, -0.8769, -0.1188, -2.4382, -1.3752, -0.4690, -2.9119, -1.2601, -0.4634, -2.7372, -0.8458, -0.2083, -2.0939, -0.2007, -0.0066, -1.7391, 0.0157, -0.0084, -1.9210, -0.3039, -0.2081, -2.9465, -1.0968, -0.0163, -3.7718, -0.9224, 0.1196, -3.9754, -0.1095, -0.0052, -4.2038, 0.8371, 0.2201, -4.6189, 0.8173, 0.4363, -5.1891, 0.2885, 0.6868, -6.3819, 0.8728, 0.8006, -7.2707, 1.1181, 0.7067, -7.5610, 1.5164, 1.1588, -7.6502, 1.7171, 1.6252, -7.7460, 1.9412, 1.9199, -8.1353, 2.6345, 1.7865, -9.6560, 2.7414, 1.7452, -10.9051, 2.5015, 1.8111, -10.9411, 2.1781, 2.1654, -10.8724, 1.6788, 2.2547, -11.2168, 2.0580, 2.4505, -11.4274, 2.7334, 2.3367, -11.3020, 3.0104, 2.6417, -10.4130, 3.4722, 2.4861, -10.1766, 3.2250, 2.9543, -10.4972, 2.7801, 3.6655, -12.0286, 2.8542, 3.3821, -14.1346, 2.8840, 3.6345, -14.6341, 3.4876, 4.3036, -14.7267, 3.5720, 4.8478, -16.3756, 2.9613, 5.0381, -18.0708, 1.9436, 4.7487, -20.2545, 2.9181, 4.9849, -19.4939, 3.3616, 5.1432, -18.3632, 3.5286, 5.4757, -16.4633, 2.9513, 4.9813, -15.9352, 2.5528, 4.6810, -15.8786, 1.8833, 4.3241, -15.3317, 2.3123, 4.2389, -14.6112, 2.7672, 4.0058, -14.3829, 2.9693, 3.6943, -14.2714, 2.1159, 3.1862, -14.1406, 1.6159, 3.0517, -13.9820, 1.1414, 2.7553, -12.6314, 1.8132, 2.3683, -9.9380, 2.0316, 2.3270, -8.6839, 1.3771, 2.1600, -7.1979, 0.7355, 1.8106, -6.4145, 0.9756, 1.5643, -5.8888, 1.0306, 1.1847, -5.0179, 0.8028, 0.8387, -5.3811, 0.5318, 0.3065, -5.9617, -0.5040, 0.3659, -6.4009, -0.5134, 0.4313, -4.7652, 0.1263, 0.5706, -3.7547, 0.7018, 0.6399, -2.4125, 1.2986, 0.7266, -1.8793, 1.4070, 0.6033, -2.0264, 1.0229, -0.1402, -3.3781, 0.1627, -0.2619, -4.3766, -0.4187, -0.2539, -4.5132, -1.1489, -0.2378, -4.4318, -1.0279, -0.2230, -3.6121, -0.8303, -0.1357, -3.1494, -0.4372, 0.0081, -3.0516, -0.3657, 0.2746, -3.9495, -0.4257, 0.2029, -4.6406, -0.8544, 0.1303, -6.2776, -0.3715, 0.1169, -7.1430, 0.0688, 0.2197, -7.5817, 0.2246, 0.3605, -7.8133, 0.5230, 0.9058, -7.8445, 0.7443, 0.8306, -8.3751, 0.8490, 0.9345, -8.8629, 0.8091, 0.7177, -9.9440, 0.3270, 1.1120, -10.2231, 0.4983, 1.3131, -9.9590, 1.0499, 0.8917, -10.3482, 1.6311, 1.0306, -11.1773, 1.9275, 1.2902, -11.4364, 1.8172, 1.5030, -11.5787, 1.5812, 1.7333, -11.1134, 1.5115, 1.7837, -10.8508, 2.1650, 1.9546, -10.7536, 2.4383, 1.9047, -12.3303, 2.3336, 1.7545, -13.1777, 1.9213, 2.0089, -13.4108, 2.1331, 2.6269, -12.6074, 2.3035, 3.2554, -14.4433, 1.9984, 3.0791, -17.2631, 1.8181, 3.0733, -18.2051, 1.7463, 3.2934, -18.3683, 2.0259, 3.6697, -17.1456, 2.1117, 3.7682, -16.9328, 1.9035, 3.1149, -17.1848, 1.5027, 3.1099, -16.4784
-};
+/** 
+ * @brief Structure containing acceleration value of each axis.
+ */
+/*
+typedef struct {
+	int32_t AXIS_X;
+	int32_t AXIS_Y;
+	int32_t AXIS_Z;
+} AxesRaw_t;
+*/
 
-int raw_feature_get_data(size_t offset, size_t length, float *out_ptr) {
-    memcpy(out_ptr, features + offset, length * sizeof(float));
-    return 0;
+static axis3bit16_t data_raw_acceleration;
+//static axis3bit16_t data_raw_angular_rate;
+static float acceleration_mg[3];
+//static float angular_rate_mdps[3];
+//AxesRaw_t acc_data, gyro_data, mag_data, mag_offset;
+
+// Allocate a buffer here for the values we'll read from the IMU
+float buffer[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE] = { 0 };
+
+void Init_Accelerometer_Gyroscope(void) {
+	uint8_t rst;
+
+	lsm6dso_i3c_disable_set(0, LSM6DSO_I3C_DISABLE);
+
+	rst = lsm6dso_reset_set(0, PROPERTY_ENABLE);
+	do {
+		lsm6dso_reset_get(0, &rst);
+	} while (rst);
+
+	lsm6dso_pin_mode_set(0, LSM6DSO_PUSH_PULL);
+	lsm6dso_pin_polarity_set(0, LSM6DSO_ACTIVE_LOW);
+	lsm6dso_all_on_int1_set(0, PROPERTY_ENABLE);
+	lsm6dso_int_notification_set(0, LSM6DSO_ALL_INT_LATCHED);
+
+	lsm6dso_block_data_update_set(0, PROPERTY_ENABLE);
+	lsm6dso_xl_power_mode_set(0, LSM6DSO_LOW_NORMAL_POWER_MD);
+	lsm6dso_gy_power_mode_set(0, LSM6DSO_GY_NORMAL);
+	lsm6dso_xl_data_rate_set(0, LSM6DSO_XL_ODR_52Hz);
+	lsm6dso_gy_data_rate_set(0, LSM6DSO_GY_ODR_52Hz);
+	lsm6dso_xl_full_scale_set(0, LSM6DSO_2g);
+	lsm6dso_gy_full_scale_set(0, LSM6DSO_2000dps);
+
+	lsm6dso_auto_increment_set(0, PROPERTY_ENABLE);
 }
 
-void fill_memory() {
-    size_t size = 8 * 1024;
-    size_t allocated = 0;
-    while (1) {
-        void *ptr = malloc(size);
-        if (!ptr) {
-            if (size == 1) break;
-            size /= 2;
-        }
-        else {
-            allocated += size;
-        }
-    }
-    printf("Allocated: %u bytes\n", allocated);
+void getAcceleration() {
+  for (int i = 0; i < EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE; i += 3) {
+    uint64_t next_tick = EI_CLASSIFIER_INTERVAL_MS;
+    memset(data_raw_acceleration.u8bit, 0x00, 3 * sizeof(int16_t));
+    lsm6dso_acceleration_raw_get(0, data_raw_acceleration.u8bit);
+    acceleration_mg[0] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[0]);
+    acceleration_mg[1] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[1]);
+    acceleration_mg[2] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[2]);
+    // Add accelerometer data to buffer
+    buffer[i + 0] = (int32_t) acceleration_mg[0]; // acc_data.AXIS_X
+    buffer[i + 1] = (int32_t) acceleration_mg[1]; // acc_data.AXIS_Y
+    buffer[i + 2] = (int32_t) acceleration_mg[2]; // acc_data.AXIS_Z
+
+    // Gyroscope data
+    /*memset(data_raw_angular_rate.u8bit, 0x00, 3 * sizeof(int16_t));
+    lsm6dso_angular_rate_raw_get(0, data_raw_angular_rate.u8bit);
+    angular_rate_mdps[0] = LSM6DSO_FROM_FS_2000dps_TO_mdps(data_raw_angular_rate.i16bit[0]);
+    angular_rate_mdps[1] = LSM6DSO_FROM_FS_2000dps_TO_mdps(data_raw_angular_rate.i16bit[1]);
+    angular_rate_mdps[2] = LSM6DSO_FROM_FS_2000dps_TO_mdps(data_raw_angular_rate.i16bit[2]);
+    gyro_data.AXIS_X = (int32_t) angular_rate_mdps[0];
+    gyro_data.AXIS_Y = (int32_t) angular_rate_mdps[1];
+    gyro_data.AXIS_Z = (int32_t) angular_rate_mdps[2];*/
+
+    wait_ms(next_tick);
+  }
 }
 
 int main() {
-    printf("Edge Impulse standalone inferencing (Mbed)\n");
+    printf("Edge Impulse motion inferencing (Mbed)\n");
 
-    //fill_memory();
+    printf("[INIT] I2C...\n");
+    SdkEvalI2CInit(400000);
 
-    if (sizeof(features) / sizeof(float) != EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE) {
-        printf("The size of your 'features' array is not correct. Expected %d items, but had %u\n",
-            EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE, sizeof(features) / sizeof(float));
-        return 1;
-    }
+    printf("[INIT] Accelerometer/gyroscope...\n");
+    Init_Accelerometer_Gyroscope();
+
+    printf("[INIT] Low-power mode...\n");
+    lsm6dso_xl_data_rate_set(0, LSM6DSO_XL_ODR_OFF);
+    lsm6dso_gy_data_rate_set(0, LSM6DSO_GY_ODR_OFF);
 
     ei_impulse_result_t result = { 0 };
 
+    printf("[INIT] Success.\n");
+
     while (1) {
+        printf("Sampling...\n");
+
+        getAcceleration();
+
         // the features are stored into flash, and we don't want to load everything into RAM
-        signal_t features_signal;
-        features_signal.total_length = sizeof(features) / sizeof(features[0]);
-        features_signal.get_data = &raw_feature_get_data;
+        signal_t signal;
+        int err = numpy::signal_from_buffer(buffer, EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE, &signal);
+        if (err != 0) {
+            ei_printf("Failed to create signal from buffer (%d)\n", err);
+            return 0;
+        }
 
         // invoke the impulse
-        EI_IMPULSE_ERROR res = run_classifier(&features_signal, &result, true);
+        EI_IMPULSE_ERROR res = run_classifier(&signal, &result, true);
         printf("run_classifier returned: %d\n", res);
 
         if (res != 0) return 1;

@@ -35,11 +35,7 @@
   * @{
   */
 
-#ifdef BLUENRG2_DEVICE /* Reserved for Future Use: Do Not Enable it */
 #include "BlueNRG2.h"   
-#else
-#include "BlueNRG1.h"
-#endif
 
 /** @addtogroup BlueNRG_x_device_configuration Configuration
   * @{

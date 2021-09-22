@@ -29,6 +29,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "BlueNRG_x_device.h"
+#include "USER_Platform_Configuration.h"
 
 /** @addtogroup BLUENRG1_Peripheral_Driver BLUENRG1 Peripheral Driver
   * @{
@@ -374,6 +375,11 @@ void I2C_DMACmd(I2C_Type* I2Cx, uint16_t I2C_DMAReq, FunctionalState NewState);
 void I2C_DMATxBurstMode(I2C_Type* I2Cx, FunctionalState NewState);
 void I2C_DMATxBurstSize(I2C_Type* I2Cx, uint8_t I2C_BurstSize);
 
+ ErrorStatus SdkEvalI2CInit(uint32_t baudrate);
+ ErrorStatus SdkEvalI2CWrite(uint8_t* pBuffer, uint8_t DeviceAddr, uint8_t RegisterAddr, uint8_t NumByteToWrite);
+ ErrorStatus SdkEvalI2CWrite16(uint8_t* pBuffer, uint8_t DeviceAddr, uint16_t RegisterAddr, uint8_t NumByteToWrite);
+ ErrorStatus SdkEvalI2CRead(uint8_t* pBuffer, uint8_t DeviceAddr, uint8_t RegisterAddr, uint8_t NumByteToRead);
+ ErrorStatus SdkEvalI2CRead16(uint8_t* pBuffer, uint8_t DeviceAddr, uint16_t RegisterAddr, uint8_t NumByteToRead);
 
 /**
   * @}
