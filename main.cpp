@@ -16,12 +16,21 @@ typedef struct {
 
 static axis3bit16_t data_raw_acceleration;
 //static axis3bit16_t data_raw_angular_rate;
-static float acceleration_mg[3];
+//static float acceleration_mg[3];
 //static float angular_rate_mdps[3];
 //AxesRaw_t acc_data, gyro_data, mag_data, mag_offset;
 
 // Allocate a buffer here for the values we'll read from the IMU
 float buffer[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE] = { 0 };
+
+#define CONVERT_G_TO_MS2    9.80665f
+
+void my_wait_us(int us)
+{
+    const ticker_data_t *const ticker = get_us_ticker_data();
+    uint32_t start = ticker_read(ticker);
+    while ((ticker_read(ticker) - start) < (uint32_t)us);
+}
 
 void Init_Accelerometer_Gyroscope(void) {
 	uint8_t rst;
@@ -50,30 +59,28 @@ void Init_Accelerometer_Gyroscope(void) {
 }
 
 void getAcceleration() {
-  for (int i = 0; i < EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE; i += 3) {
-    uint64_t next_tick = EI_CLASSIFIER_INTERVAL_MS;
     memset(data_raw_acceleration.u8bit, 0x00, 3 * sizeof(int16_t));
-    lsm6dso_acceleration_raw_get(0, data_raw_acceleration.u8bit);
-    acceleration_mg[0] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[0]);
-    acceleration_mg[1] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[1]);
-    acceleration_mg[2] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[2]);
-    // Add accelerometer data to buffer
-    buffer[i + 0] = (int32_t) acceleration_mg[0]; // acc_data.AXIS_X
-    buffer[i + 1] = (int32_t) acceleration_mg[1]; // acc_data.AXIS_Y
-    buffer[i + 2] = (int32_t) acceleration_mg[2]; // acc_data.AXIS_Z
+    for (int i = 0; i < EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE; i += 3) {
+        lsm6dso_acceleration_raw_get(0, data_raw_acceleration.u8bit);
+        // Add accelerometer data to buffer
+        buffer[i + 0] = (float) LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[0]); // LSM6DSO_FROM_FS_2g_TO_mg(...
+        buffer[i + 1] = (float) LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[1]);
+        buffer[i + 2] = (float) LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[2]);
 
-    // Gyroscope data
-    /*memset(data_raw_angular_rate.u8bit, 0x00, 3 * sizeof(int16_t));
-    lsm6dso_angular_rate_raw_get(0, data_raw_angular_rate.u8bit);
-    angular_rate_mdps[0] = LSM6DSO_FROM_FS_2000dps_TO_mdps(data_raw_angular_rate.i16bit[0]);
-    angular_rate_mdps[1] = LSM6DSO_FROM_FS_2000dps_TO_mdps(data_raw_angular_rate.i16bit[1]);
-    angular_rate_mdps[2] = LSM6DSO_FROM_FS_2000dps_TO_mdps(data_raw_angular_rate.i16bit[2]);
-    gyro_data.AXIS_X = (int32_t) angular_rate_mdps[0];
-    gyro_data.AXIS_Y = (int32_t) angular_rate_mdps[1];
-    gyro_data.AXIS_Z = (int32_t) angular_rate_mdps[2];*/
+        //printf("%f, %f, %f\n", buffer[i + 0], buffer[i + 1], buffer[i + 2], "\n");
 
-    wait_ms(next_tick);
-  }
+        // Gyroscope data
+        /*memset(data_raw_angular_rate.u8bit, 0x00, 3 * sizeof(int16_t));
+        lsm6dso_angular_rate_raw_get(0, data_raw_angular_rate.u8bit);
+        angular_rate_mdps[0] = LSM6DSO_FROM_FS_2000dps_TO_mdps(data_raw_angular_rate.i16bit[0]);
+        angular_rate_mdps[1] = LSM6DSO_FROM_FS_2000dps_TO_mdps(data_raw_angular_rate.i16bit[1]);
+        angular_rate_mdps[2] = LSM6DSO_FROM_FS_2000dps_TO_mdps(data_raw_angular_rate.i16bit[2]);
+        gyro_data.AXIS_X = (int32_t) angular_rate_mdps[0];
+        gyro_data.AXIS_Y = (int32_t) angular_rate_mdps[1];
+        gyro_data.AXIS_Z = (int32_t) angular_rate_mdps[2];*/
+
+        my_wait_us(EI_CLASSIFIER_INTERVAL_MS * 1000);
+    }
 }
 
 int main() {
