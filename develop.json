@@ -1,6 +1,4 @@
 {
-    "macros": [
-    ],
     "target_overrides": {
         "*": {
             "platform.memory-tracing-enabled": true,
