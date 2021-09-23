@@ -51,10 +51,6 @@ void Init_Accelerometer_Gyroscope(void) {
     //lsm6dso_int_notification_set(0, LSM6DSO_ALL_INT_PULSED);
 }
 
-float scaleBetween(float unscaledNum, float minAllowed, float maxAllowed, float min, float max) {
-  return (float) ((maxAllowed - minAllowed) * (unscaledNum - min) / (max - min) + minAllowed);
-}
-
 int get_accelerometer_data(size_t offset, size_t length, float *out_ptr) {
     for (size_t ix = 0; ix < length; ix++) {
         int32_t v = buffer[offset + ix];
@@ -72,7 +68,7 @@ void getAcceleration() {
         acceleration_mg[0] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[0]) / 1000.0f * (CONVERT_G_TO_MS2 * 2);
         acceleration_mg[1] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[1]) / 1000.0f * (CONVERT_G_TO_MS2 * 2);
         acceleration_mg[2] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[2]) / 1000.0f * (CONVERT_G_TO_MS2 * 2);
-        printf("%f,\t%f,\t%f\n", acceleration_mg[0], acceleration_mg[1], acceleration_mg[2]);
+        //printf("%f,\t%f,\t%f\n", acceleration_mg[0], acceleration_mg[1], acceleration_mg[2]);
         buffer[i + 0] = (int32_t) acceleration_mg[0];
         buffer[i + 1] = (int32_t) acceleration_mg[1];
         buffer[i + 2] = (int32_t) acceleration_mg[2];
