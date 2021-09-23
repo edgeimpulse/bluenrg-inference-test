@@ -41,19 +41,19 @@
 #define EI_CLASSIFIER_DATATYPE_FLOAT32           1
 #define EI_CLASSIFIER_DATATYPE_INT8              9
 
-#define EI_CLASSIFIER_PROJECT_ID                 1
+#define EI_CLASSIFIER_PROJECT_ID                 48988
 #define EI_CLASSIFIER_PROJECT_OWNER              "Jan Jongboom"
-#define EI_CLASSIFIER_PROJECT_NAME               "Continuous gestures demo"
-#define EI_CLASSIFIER_PROJECT_DEPLOY_VERSION     106
+#define EI_CLASSIFIER_PROJECT_NAME               "Continuous motion low mem"
+#define EI_CLASSIFIER_PROJECT_DEPLOY_VERSION     16
 #define EI_CLASSIFIER_NN_INPUT_FRAME_SIZE        33
-#define EI_CLASSIFIER_RAW_SAMPLE_COUNT           125
+#define EI_CLASSIFIER_RAW_SAMPLE_COUNT           75
 #define EI_CLASSIFIER_RAW_SAMPLES_PER_FRAME      3
 #define EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE       (EI_CLASSIFIER_RAW_SAMPLE_COUNT * EI_CLASSIFIER_RAW_SAMPLES_PER_FRAME)
 #define EI_CLASSIFIER_INPUT_WIDTH                0
 #define EI_CLASSIFIER_INPUT_HEIGHT               0
 #define EI_CLASSIFIER_INPUT_FRAMES               0
 #define EI_CLASSIFIER_INTERVAL_MS                16
-#define EI_CLASSIFIER_LABEL_COUNT                6
+#define EI_CLASSIFIER_LABEL_COUNT                4
 #define EI_CLASSIFIER_HAS_ANOMALY                1
 #define EI_CLASSIFIER_FREQUENCY                  62.5
 #define EI_CLASSIFIER_USE_QUANTIZED_DSP_BLOCK    0
@@ -65,7 +65,7 @@
 #define EI_CLASSIFIER_TFLITE_ARENA_SIZE          2598
 #define EI_CLASSIFIER_TFLITE_INPUT_DATATYPE      EI_CLASSIFIER_DATATYPE_INT8
 #define EI_CLASSIFIER_TFLITE_INPUT_QUANTIZED     1
-#define EI_CLASSIFIER_TFLITE_INPUT_SCALE         0.11558566987514496
+#define EI_CLASSIFIER_TFLITE_INPUT_SCALE         0.0716293528676033
 #define EI_CLASSIFIER_TFLITE_INPUT_ZEROPOINT     -128
 #define EI_CLASSIFIER_TFLITE_OUTPUT_DATATYPE     EI_CLASSIFIER_DATATYPE_INT8
 #define EI_CLASSIFIER_TFLITE_OUTPUT_QUANTIZED    1
@@ -91,7 +91,7 @@
 #endif
 #endif // EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TFLITE && EI_CLASSIFIER_USE_FULL_TFLITE == 1
 
-const char* ei_classifier_inferencing_categories[] = { "drink", "fistbump", "idle", "snake", "updown", "wave" };
+const char* ei_classifier_inferencing_categories[] = { "idle", "snake", "updown", "wave" };
 
 typedef struct {
     uint16_t implementation_version;
@@ -181,16 +181,16 @@ typedef struct {
     float pre_cof;
 } ei_dsp_config_audio_syntiant_t;
 
-uint8_t ei_dsp_config_83_axes[] = { 0, 1, 2 };
-const uint32_t ei_dsp_config_83_axes_size = 3;
-ei_dsp_config_spectral_analysis_t ei_dsp_config_83 = {
+uint8_t ei_dsp_config_3_axes[] = { 0, 1, 2 };
+const uint32_t ei_dsp_config_3_axes_size = 3;
+ei_dsp_config_spectral_analysis_t ei_dsp_config_3 = {
     1,
     3,
     1.00000f,
     "low",
     3.00000f,
     6,
-    128,
+    64,
     3,
     0.10000f,
     "0.1, 0.5, 1.0, 2.0, 5.0"
