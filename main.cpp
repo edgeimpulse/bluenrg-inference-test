@@ -3,7 +3,7 @@
 #include "numpy.hpp"
 #include "LSM6DSO.h"
 
-/** 
+/**
  * @brief Structure containing acceleration value of each axis.
  */
 /*
@@ -21,9 +21,18 @@ static axis3bit16_t data_raw_acceleration;
 //AxesRaw_t acc_data, gyro_data, mag_data, mag_offset;
 
 // Allocate a buffer here for the values we'll read from the IMU
-float buffer[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE] = { 0 };
+int16_t buffer[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE] = { 0 };
 
 #define CONVERT_G_TO_MS2    9.80665f
+
+int get_accelerometer_data(size_t offset, size_t length, float *out_ptr) {
+    for (size_t ix = 0; ix < length; ix++) {
+        int16_t v = buffer[offset + ix];
+        float v2 = (float) LSM6DSO_FROM_FS_2g_TO_mg(v);
+        out_ptr[ix] = v2;
+    }
+    return 0;
+}
 
 void my_wait_us(int us)
 {
@@ -63,9 +72,9 @@ void getAcceleration() {
     for (int i = 0; i < EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE; i += 3) {
         lsm6dso_acceleration_raw_get(0, data_raw_acceleration.u8bit);
         // Add accelerometer data to buffer
-        buffer[i + 0] = (float) LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[0]); // LSM6DSO_FROM_FS_2g_TO_mg(...
-        buffer[i + 1] = (float) LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[1]);
-        buffer[i + 2] = (float) LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[2]);
+        buffer[i + 0] = (data_raw_acceleration.i16bit[0]); // LSM6DSO_FROM_FS_2g_TO_mg(...
+        buffer[i + 1] = (data_raw_acceleration.i16bit[1]);
+        buffer[i + 2] = (data_raw_acceleration.i16bit[2]);
 
         //printf("%f, %f, %f\n", buffer[i + 0], buffer[i + 1], buffer[i + 2], "\n");
 
@@ -107,11 +116,8 @@ int main() {
 
         // the features are stored into flash, and we don't want to load everything into RAM
         signal_t signal;
-        int err = numpy::signal_from_buffer(buffer, EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE, &signal);
-        if (err != 0) {
-            ei_printf("Failed to create signal from buffer (%d)\n", err);
-            return 0;
-        }
+        signal.total_length = EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE;
+        signal.get_data = &get_accelerometer_data;
 
         // invoke the impulse
         EI_IMPULSE_ERROR res = run_classifier(&signal, &result, true);
