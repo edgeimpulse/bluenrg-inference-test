@@ -2,12 +2,19 @@
 #include "ei_run_classifier.h"
 #include "numpy.hpp"
 #include "LSM6DSO.h"
+#include <inttypes.h>
+
+static int64_t sampling_freq = 25; // in Hz.
+static int64_t time_between_samples_us = EI_CLASSIFIER_INTERVAL_MS * 1000;
 
 static axis3bit16_t data_raw_acceleration;
 static float acceleration_mg[3];
-int16_t buffer[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE] = { 0 };
+int32_t buffer[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE] = { 0 };
 
 #define CONVERT_G_TO_MS2    9.80665f
+
+// Sampling timer
+Timer t;
 
 void my_wait_us(int us) {
     const ticker_data_t *const ticker = get_us_ticker_data();
@@ -39,12 +46,18 @@ void Init_Accelerometer_Gyroscope(void) {
 	lsm6dso_gy_full_scale_set(0, LSM6DSO_2000dps);
 
 	lsm6dso_auto_increment_set(0, PROPERTY_ENABLE);
+
+    // HWAdvanceFeatures
+    //lsm6dso_int_notification_set(0, LSM6DSO_ALL_INT_PULSED);
+}
+
+float scaleBetween(float unscaledNum, float minAllowed, float maxAllowed, float min, float max) {
+  return (float) ((maxAllowed - minAllowed) * (unscaledNum - min) / (max - min) + minAllowed);
 }
 
 int get_accelerometer_data(size_t offset, size_t length, float *out_ptr) {
     for (size_t ix = 0; ix < length; ix++) {
-        int16_t v = buffer[offset + ix];
-        //float v2 = (float) LSM6DSO_FROM_FS_2g_TO_mg(v);
+        int32_t v = buffer[offset + ix];
         float v2 = (float) v;
         out_ptr[ix] = v2;
     }
@@ -53,21 +66,25 @@ int get_accelerometer_data(size_t offset, size_t length, float *out_ptr) {
 
 void getAcceleration() {
     for (int i = 0; i < EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE; i += 3) {
+        int64_t next_tick = t.read_us() + time_between_samples_us;
         memset(data_raw_acceleration.u8bit, 0x00, 3 * sizeof(int16_t));
         lsm6dso_acceleration_raw_get(0, data_raw_acceleration.u8bit);
-        acceleration_mg[0] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[0]);
-        acceleration_mg[1] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[1]);
-        acceleration_mg[2] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[2]);
-        // Add accelerometer data to buffer
-        buffer[i + 0] = (int16_t) acceleration_mg[0]; // acc_data.AXIS_X
-        buffer[i + 1] = (int16_t) acceleration_mg[1]; // acc_data.AXIS_Y
-        buffer[i + 2] = (int16_t) acceleration_mg[2]; // acc_data.AXIS_Z
-        //printf("%u, %u, %u\n", buffer[i + 0], buffer[i + 1], buffer[i + 2], "\n");
-        my_wait_us(EI_CLASSIFIER_INTERVAL_MS * 1000);
+        acceleration_mg[0] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[0]) / 1000.0f * (CONVERT_G_TO_MS2 * 2);
+        acceleration_mg[1] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[1]) / 1000.0f * (CONVERT_G_TO_MS2 * 2);
+        acceleration_mg[2] = LSM6DSO_FROM_FS_2g_TO_mg(data_raw_acceleration.i16bit[2]) / 1000.0f * (CONVERT_G_TO_MS2 * 2);
+        printf("%f,\t%f,\t%f\n", acceleration_mg[0], acceleration_mg[1], acceleration_mg[2]);
+        buffer[i + 0] = (int32_t) acceleration_mg[0];
+        buffer[i + 1] = (int32_t) acceleration_mg[1];
+        buffer[i + 2] = (int32_t) acceleration_mg[2];
+        while (t.read_us() < next_tick) {
+            /* busy loop */
+        }
     }
 }
 
 int main() {
+    t.start();
+
     printf("Edge Impulse motion inferencing (Mbed)\n");
 
     printf("[INIT] I2C...\n");
@@ -77,8 +94,8 @@ int main() {
     Init_Accelerometer_Gyroscope();
 
     printf("[INIT] Low-power mode...\n");
-    lsm6dso_xl_data_rate_set(0, LSM6DSO_XL_ODR_OFF);
-    lsm6dso_gy_data_rate_set(0, LSM6DSO_GY_ODR_OFF);
+    //lsm6dso_xl_data_rate_set(0, LSM6DSO_XL_ODR_OFF);
+    //lsm6dso_gy_data_rate_set(0, LSM6DSO_GY_ODR_OFF);
 
     ei_impulse_result_t result = { 0 };
 
