@@ -2,6 +2,8 @@
 
 Board: https://www.st.com/en/evaluation-tools/steval-bcn002v1b.html
 
+Edge Impulse Project: https://studio.edgeimpulse.com/public/48988/latest
+
 1. Get GCC ARM 7 & Mbed CLI
 1. Configure:
     ```
@@ -12,5 +14,5 @@ Board: https://www.st.com/en/evaluation-tools/steval-bcn002v1b.html
     $ mbed compile -t GCC_ARM -m STEVAL_IDB008V2 --profile=develop.json
     ```
 1. Flash/verify built binary with [STSW-BNRGFLASHER](https://www.st.com/en/embedded-software/stsw-bnrgflasher.html) on Windows from address `0x10040000`
-    - Note: verify will fail, but doesn't seem to matter
-1. See output on `9600` baud rate from serial terminal
+    - Note: verify will fail, but it doesn't seem to matter
+1. See printf output on `9600` baud rate from serial terminal

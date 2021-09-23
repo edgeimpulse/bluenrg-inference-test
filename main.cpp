@@ -2,7 +2,6 @@
 #include "ei_run_classifier.h"
 #include "numpy.hpp"
 #include "LSM6DSO.h"
-#include <inttypes.h>
 
 static int64_t sampling_freq = 25; // in Hz.
 static int64_t time_between_samples_us = EI_CLASSIFIER_INTERVAL_MS * 1000;
@@ -89,7 +88,7 @@ int main() {
     printf("[INIT] Accelerometer/gyroscope...\n");
     Init_Accelerometer_Gyroscope();
 
-    printf("[INIT] Low-power mode...\n");
+    //printf("[INIT] Low-power mode...\n");
     //lsm6dso_xl_data_rate_set(0, LSM6DSO_XL_ODR_OFF);
     //lsm6dso_gy_data_rate_set(0, LSM6DSO_GY_ODR_OFF);
 
