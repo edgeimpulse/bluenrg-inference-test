@@ -2,6 +2,8 @@
 
 This example runs an impulse on the [STEVAL-BCN002V1](https://www.st.com/en/evaluation-tools/steval-bcn002v1b.html) multi-sensor board, classifying data in real-time from the LSM6DSO IMU. An example Edge Impulse project (the one included in this example) can be found here: https://studio.edgeimpulse.com/public/48988/latest - you can clone this project and use the [data forwarder](https://docs.edgeimpulse.com/docs/cli-data-forwarder) to add new data, or train new gestures.
 
+> **Note: This is an example, and not a fully supported development board.**
+
 ## Building and flashing this application
 
 1. Install the [Mbed CLI](https://github.com/ARMmbed/mbed-cli).
@@ -25,3 +27,7 @@ This example runs an impulse on the [STEVAL-BCN002V1](https://www.st.com/en/eval
     > **Note:** Verify seems to always fail, but the application is flashed anyway.
 
 1. Open a serial terminal to the device on baud rate `9600` to see the inference results.
+
+## Attribution
+
+This work is based on an Mbed OS port for the BlueTile by [ntoni92](https://github.com/ntoni92/mbed-os-BlueNRG2).
