@@ -20,13 +20,21 @@
  * SOFTWARE.
  */
 
+/* Includes */
 #include "../ei_classifier_porting.h"
-#if EI_PORTING_ECM3532 == 1
+#if EI_PORTING_RENESASRA65 == 1
 
+#include "common_utils.h"
 #include <stdarg.h>
 #include <stdlib.h>
-#include "eta_bsp.h"
-#include "FreeRTOS.h"
+#include <cstdio>
+#include "unistd.h"
+#include "peripheral/uart_ep.h"
+#include <math.h>
+
+// extern "C" void Serial_Out(char *string, int length);
+extern "C" uint64_t timer_get_ms(void);
+// extern "C" fsp_err_t uart_print_user_msg(uint8_t *p_msg);
 
 __attribute__((weak)) EI_IMPULSE_ERROR ei_run_impulse_check_canceled() {
     return EI_IMPULSE_OK;
@@ -36,57 +44,95 @@ __attribute__((weak)) EI_IMPULSE_ERROR ei_run_impulse_check_canceled() {
  * Cancelable sleep, can be triggered with signal from other thread
  */
 __attribute__((weak)) EI_IMPULSE_ERROR ei_sleep(int32_t time_ms) {
-    EtaCspTimerDelayMs(time_ms);
+
+    uint64_t start_time = ei_read_timer_ms();
+
+    while(start_time + time_ms > ei_read_timer_ms()){};
+
     return EI_IMPULSE_OK;
 }
 
 uint64_t ei_read_timer_ms() {
-    return EtaCspTimerCountGetMs();
+
+    return timer_get_ms();//Timer_getMs();
 }
 
 uint64_t ei_read_timer_us() {
+
+    /* TI board hangs when trying to call callback function each micro second */
     return 0;
 }
 
 __attribute__((weak)) void ei_printf(const char *format, ...) {
-    
-    extern tUart etaUart;
-    char print_buf[1024] = {0};
 
-    va_list args;
-    va_start(args, format);
-    int r = vsnprintf(print_buf, sizeof(print_buf), format, args);
-    va_end(args);
+    char buffer[256] = {0};
+    int length;
+    va_list myargs;
+    va_start(myargs, format);
+    length = vsnprintf(buffer, sizeof(buffer), format, myargs);
+    va_end(myargs);
 
-    if (r > 0) {
-        EtaCspUartPuts(&etaUart, print_buf);
+    if (length > 0){
+        uart_print_user_msg((uint8_t *)buffer);
     }
+    
 }
 
 __attribute__((weak)) void ei_printf_float(float f) {
-    ei_printf("%f", f);
+    float n = f;
+
+    static double PRECISION = 0.00001;
+    static int MAX_NUMBER_STRING_SIZE = 32;
+
+    char s[MAX_NUMBER_STRING_SIZE];
+
+    if (n == 0.0) {
+        strcpy(s, "0");
+    }
+    else {
+        int digit, m;
+        char *c = s;
+        int neg = (n < 0);
+        if (neg) {
+            n = -n;
+        }
+        // calculate magnitude
+        m = log10(n);
+        if (neg) {
+            *(c++) = '-';
+        }
+        if (m < 1.0) {
+            m = 0;
+        }
+        // convert the number
+        while (n > PRECISION || m >= 0) {
+            double weight = pow(10.0, m);
+            if (weight > 0 && !isinf(weight)) {
+                digit = floor(n / weight);
+                n -= (digit * weight);
+                *(c++) = '0' + digit;
+            }
+            if (m == 0 && n > 0) {
+                *(c++) = '.';
+            }
+            m--;
+        }
+        *(c) = '\0';
+    }
+
+    ei_printf("%s", s);
 }
 
 __attribute__((weak)) void *ei_malloc(size_t size) {
-    return pvPortMalloc(size);
+    return malloc(size);
 }
 
 __attribute__((weak)) void *ei_calloc(size_t nitems, size_t size) {
-    
-    uint32_t ix;
-    uint8_t *ptr = (uint8_t *)pvPortMalloc(nitems * size);
-
-    if(ptr) {
-        for (ix = 0; ix < (nitems * size); ix++) {
-            *(ptr + ix) = 0;            
-        }
-    }
-
-    return (void *)ptr;
+    return calloc(nitems, size);
 }
 
 __attribute__((weak)) void ei_free(void *ptr) {
-    vPortFree(ptr);
+    free(ptr);
 }
 
 #if defined(__cplusplus) && EI_C_LINKAGE == 1
@@ -96,4 +142,4 @@ __attribute__((weak)) void DebugLog(const char* s) {
     ei_printf("%s", s);
 }
 
-#endif // EI_PORTING_ECM3532 == 1
+#endif // EI_PORTING_RENESASRA65 == 1

@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-#include "../ei_classifier_porting.h"
+#include "edge-impulse-sdk/porting/ei_classifier_porting.h"
 #if EI_PORTING_MBED == 1
 
 #include "edge-impulse-sdk/tensorflow/lite/micro/debug_log.h"

@@ -43,7 +43,6 @@ typedef enum {
     EI_IMPULSE_ONLY_SUPPORTED_FOR_IMAGES = -9,
     EI_IMPULSE_UNSUPPORTED_INFERENCING_ENGINE = -10,
     EI_IMPULSE_OUT_OF_MEMORY = -11,
-    EI_IMPULSE_NOT_SUPPORTED_WITH_I16 = -12,
     EI_IMPULSE_INPUT_TENSOR_WAS_NULL = -13,
     EI_IMPULSE_OUTPUT_TENSOR_WAS_NULL = -14,
     EI_IMPULSE_SCORE_TENSOR_WAS_NULL = -15,
@@ -88,6 +87,7 @@ void ei_putchar(char c);
  * Print wrapper around printf()
  * This is used internally to print debug information.
  */
+__attribute__ ((format (printf, 1, 2)))
 void ei_printf(const char *format, ...);
 
 /**
@@ -132,6 +132,14 @@ void ei_free(void *ptr);
 #endif
 #endif
 
+#ifndef EI_PORTING_ESPRESSIF
+#ifdef CONFIG_IDF_TARGET_ESP32
+#define EI_PORTING_ESPRESSIF      1
+#else
+#define EI_PORTING_ESPRESSIF     0
+#endif
+#endif
+
 #ifndef EI_PORTING_MBED
 #ifdef __MBED__
 #define EI_PORTING_MBED      1
@@ -153,6 +161,14 @@ void ei_free(void *ptr);
 #define EI_PORTING_SILABS      1
 #else
 #define EI_PORTING_SILABS      0
+#endif
+#endif
+
+#ifndef EI_PORTING_RASPBERRY
+#ifdef PICO_BOARD
+#define EI_PORTING_RASPBERRY      1
+#else
+#define EI_PORTING_RASPBERRY      0
 #endif
 #endif
 

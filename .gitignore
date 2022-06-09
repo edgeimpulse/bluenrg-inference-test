@@ -3,3 +3,4 @@
 projectfiles
 mbed_settings.py*
 __pycache__/
+.DS_Store
